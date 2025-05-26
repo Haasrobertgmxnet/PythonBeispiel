@@ -9,6 +9,7 @@ from sklearn.preprocessing import StandardScaler, LabelBinarizer
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import EarlyStopping
 
 # 1. Lade Iris-Daten
 iris = datasets.load_iris()
@@ -21,7 +22,7 @@ target_names = iris.target_names
 df = pd.DataFrame(X, columns=feature_names)
 df['species'] = [target_names[i] for i in y]
 
-# 3. Visualisierung mit Seaborn
+# 3. Visualisierung
 sns.pairplot(df, hue='species', palette='husl')
 plt.suptitle("Iris Pairplot", y=1.02)
 plt.show()
@@ -37,7 +38,6 @@ scaler = StandardScaler()
 X_train = scaler.fit_transform(X_train)
 X_test = scaler.transform(X_test)
 
-# One-Hot-Encoding der Labels
 lb = LabelBinarizer()
 y_train_ohe = lb.fit_transform(y_train)
 y_test_ohe = lb.transform(y_test)
@@ -51,15 +51,24 @@ model = Sequential([
 
 model.compile(optimizer=Adam(0.01), loss='categorical_crossentropy', metrics=['accuracy'])
 
-# 6. Training
-history = model.fit(X_train, y_train_ohe, validation_split=0.2, epochs=5, verbose=0)
+# 6. EarlyStopping Callback
+early_stop = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
 
-# 7. Evaluation
+# 7. Training mit EarlyStopping
+history = model.fit(
+    X_train, y_train_ohe,
+    validation_split=0.2,
+    epochs=50,
+    callbacks=[early_stop],
+    verbose=1
+)
+
+# 8. Evaluation
 loss, accuracy = model.evaluate(X_test, y_test_ohe, verbose=0)
 print(f"\nTest Loss: {loss:.4f}")
 print(f"Test Accuracy: {accuracy:.4f}")
 
-# 8. Trainingsverlauf visualisieren
+# 9. Trainingsverlauf visualisieren
 plt.figure(figsize=(12, 5))
 plt.subplot(1, 2, 1)
 plt.plot(history.history['loss'], label='Loss')
